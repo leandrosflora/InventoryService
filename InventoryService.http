@@ -1,6 +1,38 @@
 @InventoryService_HostAddress = http://localhost:5168
+@sellerId = 11111111-1111-1111-1111-111111111111
+@skuId = 22222222-2222-2222-2222-222222222222
+@fulfillmentCenterId = 33333333-3333-3333-3333-333333333333
+@checkoutId = 44444444-4444-4444-4444-444444444444
 
-GET {{InventoryService_HostAddress}}/weatherforecast/
+GET {{InventoryService_HostAddress}}/health
 Accept: application/json
+
+###
+
+POST {{InventoryService_HostAddress}}/inventory/availability/batch
+Content-Type: application/json
+
+{
+  "sellerId": "{{sellerId}}",
+  "skuIds": ["{{skuId}}"]
+}
+
+###
+
+POST {{InventoryService_HostAddress}}/inventory/reservations
+Content-Type: application/json
+Idempotency-Key: checkout-{{checkoutId}}
+
+{
+  "checkoutId": "{{checkoutId}}",
+  "sellerId": "{{sellerId}}",
+  "items": [
+    {
+      "skuId": "{{skuId}}",
+      "fulfillmentCenterId": "{{fulfillmentCenterId}}",
+      "quantity": 1
+    }
+  ]
+}
 
 ###
