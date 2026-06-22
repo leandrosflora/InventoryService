@@ -3,7 +3,9 @@ using InventoryService.Application;
 using InventoryService.Application.Ports;
 using InventoryService.Infrastructure.Outbox;
 using InventoryService.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +29,7 @@ builder.Services.AddScoped<ITransactionRunner, EfCoreTransactionRunner>();
 builder.Services.AddHostedService<ReservationExpirationWorker>();
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<InventoryDbContext>();
+    .AddDbContextCheck<InventoryDbContext>("inventory-db", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -39,7 +41,32 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = WriteHealthResponseAsync
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthResponseAsync
+});
 app.MapInventoryEndpoints();
 
 app.Run();
+
+static Task WriteHealthResponseAsync(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+
+    return context.Response.WriteAsJsonAsync(new
+    {
+        status = report.Status.ToString(),
+        checks = report.Entries.Select(entry => new
+        {
+            name = entry.Key,
+            status = entry.Value.Status.ToString(),
+            description = entry.Value.Description
+        })
+    });
+}

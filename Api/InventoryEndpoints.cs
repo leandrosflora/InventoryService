@@ -7,7 +7,7 @@ public static class InventoryEndpoints
 {
     public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/inventory")
+        var group = app.MapGroup("/v1/inventory")
             .WithTags("Inventory");
 
         group.MapPost("/availability/batch", async (
@@ -42,15 +42,20 @@ public static class InventoryEndpoints
 
             if (string.IsNullOrWhiteSpace(idempotencyKey))
             {
+                idempotencyKey = httpContext.Request.Headers["x-idempotency-key"].ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+            {
                 return Results.BadRequest(new
                 {
-                    error = "Idempotency-Key header is required"
+                    error = "Idempotency-Key or x-idempotency-key header is required"
                 });
             }
 
             var response = await service.CreateReservationAsync(request, idempotencyKey, cancellationToken);
 
-            return Results.Created($"/inventory/reservations/{response.ReservationId}", response);
+            return Results.Created($"/v1/inventory/reservations/{response.ReservationId}", response);
         });
 
         group.MapPost("/reservations/{reservationId:guid}/confirm", async (
