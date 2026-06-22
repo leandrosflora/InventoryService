@@ -70,7 +70,7 @@ InventoryService/
 
 ### Camada `Api`
 
-A camada `Api` define os endpoints HTTP em `/inventory`, delegando a execução das regras para os serviços de aplicação.
+A camada `Api` define os endpoints HTTP em `/v1/inventory`, delegando a execução das regras para os serviços de aplicação.
 
 ### Camada `Application`
 
@@ -243,11 +243,11 @@ Em desenvolvimento, os perfis locais expõem a API em:
 
 ## Documentação da API
 
-Todos os endpoints de negócio ficam sob o prefixo `/inventory`.
+Todos os endpoints de negócio ficam sob o prefixo `/v1/inventory`.
 
-### `GET /health`
+### Health checks
 
-Verifica a saúde da aplicação e a conectividade com o `InventoryDbContext`.
+`/health/live` verifica se o processo está ativo; `/health/ready` verifica se a aplicação está pronta para tráfego e se conecta ao `InventoryDbContext`.
 
 #### Respostas
 
@@ -256,7 +256,7 @@ Verifica a saúde da aplicação e a conectividade com o `InventoryDbContext`.
 
 ---
 
-### `POST /inventory/availability/batch`
+### `POST /v1/inventory/availability/batch`
 
 Consulta a disponibilidade de uma lista de SKUs para um vendedor.
 
@@ -294,14 +294,14 @@ Consulta a disponibilidade de uma lista de SKUs para um vendedor.
 
 ---
 
-### `GET /inventory/{sellerId}/{skuId}`
+### `GET /v1/inventory/{sellerId}/{skuId}`
 
 Consulta a disponibilidade de um SKU específico para um vendedor.
 
 #### Exemplo
 
 ```http
-GET /inventory/11111111-1111-1111-1111-111111111111/22222222-2222-2222-2222-222222222222
+GET /v1/inventory/11111111-1111-1111-1111-111111111111/22222222-2222-2222-2222-222222222222
 ```
 
 #### Response `200 OK`
@@ -310,7 +310,7 @@ Retorna uma lista com os saldos encontrados para o par `sellerId` e `skuId`, inc
 
 ---
 
-### `POST /inventory/reservations`
+### `POST /v1/inventory/reservations`
 
 Cria uma reserva de estoque para um checkout.
 
@@ -368,14 +368,14 @@ O header `Idempotency-Key` é obrigatório. Se a mesma chave for enviada novamen
 
 ---
 
-### `POST /inventory/reservations/{reservationId}/confirm`
+### `POST /v1/inventory/reservations/{reservationId}/confirm`
 
 Confirma uma reserva pendente.
 
 #### Exemplo
 
 ```http
-POST /inventory/reservations/55555555-5555-5555-5555-555555555555/confirm
+POST /v1/inventory/reservations/55555555-5555-5555-5555-555555555555/confirm
 ```
 
 #### Response `200 OK`
@@ -405,14 +405,14 @@ POST /inventory/reservations/55555555-5555-5555-5555-555555555555/confirm
 
 ---
 
-### `POST /inventory/reservations/{reservationId}/release`
+### `POST /v1/inventory/reservations/{reservationId}/release`
 
 Libera uma reserva pendente.
 
 #### Exemplo
 
 ```http
-POST /inventory/reservations/55555555-5555-5555-5555-555555555555/release
+POST /v1/inventory/reservations/55555555-5555-5555-5555-555555555555/release
 ```
 
 #### Response `200 OK`
@@ -443,7 +443,7 @@ POST /inventory/reservations/55555555-5555-5555-5555-555555555555/release
 
 ---
 
-### `POST /inventory/adjustments`
+### `POST /v1/inventory/adjustments`
 
 Ajusta o estoque físico de um SKU em um centro de atendimento.
 
@@ -621,7 +621,7 @@ Payload contém:
 
 ## Health check e Swagger
 
-- Health check: `GET /health`.
+- Health checks: `GET /health/live` e `GET /health/ready`.
 - Swagger UI em ambiente de desenvolvimento: `/swagger`.
 
 O Swagger é habilitado apenas quando `ASPNETCORE_ENVIRONMENT=Development`.
@@ -633,7 +633,7 @@ O arquivo `InventoryService.http` contém exemplos prontos para execução em ID
 ### Criar uma reserva
 
 ```http
-POST http://localhost:5168/inventory/reservations
+POST http://localhost:5168/v1/inventory/reservations
 Content-Type: application/json
 Idempotency-Key: checkout-44444444-4444-4444-4444-444444444444
 
@@ -653,19 +653,19 @@ Idempotency-Key: checkout-44444444-4444-4444-4444-444444444444
 ### Confirmar uma reserva
 
 ```http
-POST http://localhost:5168/inventory/reservations/55555555-5555-5555-5555-555555555555/confirm
+POST http://localhost:5168/v1/inventory/reservations/55555555-5555-5555-5555-555555555555/confirm
 ```
 
 ### Liberar uma reserva
 
 ```http
-POST http://localhost:5168/inventory/reservations/55555555-5555-5555-5555-555555555555/release
+POST http://localhost:5168/v1/inventory/reservations/55555555-5555-5555-5555-555555555555/release
 ```
 
 ### Ajustar estoque
 
 ```http
-POST http://localhost:5168/inventory/adjustments
+POST http://localhost:5168/v1/inventory/adjustments
 Content-Type: application/json
 
 {
