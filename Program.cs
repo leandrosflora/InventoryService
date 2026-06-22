@@ -1,6 +1,7 @@
 using InventoryService.Api;
 using InventoryService.Application;
 using InventoryService.Application.Ports;
+using InventoryService.Infrastructure.Messaging;
 using InventoryService.Infrastructure.Outbox;
 using InventoryService.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -44,7 +45,10 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IEventPublisher, OutboxEventPublisher>();
 builder.Services.AddScoped<ITransactionRunner, EfCoreTransactionRunner>();
 
+builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection(KafkaOptions.SectionName));
 builder.Services.AddHostedService<ReservationExpirationWorker>();
+builder.Services.AddHostedService<InventoryCommandsConsumer>();
+builder.Services.AddHostedService<OutboxDispatcher>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<InventoryDbContext>("inventory-db", tags: ["ready"]);

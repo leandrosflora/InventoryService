@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using InventoryService.Application.Ports;
 using InventoryService.Contracts;
 using InventoryService.Domain;
@@ -71,20 +72,8 @@ public sealed class ReservationApplicationService
             await _reservationRepository.AddAsync(reservation, ct);
 
             await _eventPublisher.AddToOutboxAsync(
-                "InventoryReserved",
-                new
-                {
-                    reservation.Id,
-                    reservation.CheckoutId,
-                    reservation.SellerId,
-                    reservation.ExpiresAt,
-                    Items = reservation.Items.Select(x => new
-                    {
-                        x.SkuId,
-                        x.FulfillmentCenterId,
-                        x.Quantity
-                    })
-                },
+                "inventory.reserved",
+                new InventoryReservedPayload(reservation.CheckoutId, reservation.Id),
                 ct);
 
             await _reservationRepository.SaveChangesAsync(ct);
@@ -115,14 +104,8 @@ public sealed class ReservationApplicationService
             }
 
             await _eventPublisher.AddToOutboxAsync(
-                "InventoryReservationConfirmed",
-                new
-                {
-                    reservation.Id,
-                    reservation.CheckoutId,
-                    reservation.SellerId,
-                    ConfirmedAt = DateTimeOffset.UtcNow
-                },
+                "inventory.reservation.confirmed",
+                new InventoryReservationConfirmedPayload(reservation.CheckoutId, reservation.Id),
                 ct);
 
             await _reservationRepository.SaveChangesAsync(ct);
@@ -157,14 +140,8 @@ public sealed class ReservationApplicationService
             }
 
             await _eventPublisher.AddToOutboxAsync(
-                "InventoryReservationReleased",
-                new
-                {
-                    reservation.Id,
-                    reservation.CheckoutId,
-                    reservation.SellerId,
-                    ReleasedAt = DateTimeOffset.UtcNow
-                },
+                "inventory.reservation.released",
+                new InventoryReservationReleasedPayload(reservation.CheckoutId, reservation.Id),
                 ct);
 
             await _reservationRepository.SaveChangesAsync(ct);
@@ -200,3 +177,19 @@ public sealed class ReservationApplicationService
                 x.Quantity)).ToList());
     }
 }
+
+internal sealed record InventoryReservedPayload(
+    [property: System.Text.Json.Serialization.JsonPropertyName("orderId")] Guid OrderId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("reservationId")] Guid ReservationId);
+
+internal sealed record InventoryReservationConfirmedPayload(
+    [property: System.Text.Json.Serialization.JsonPropertyName("orderId")] Guid OrderId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("reservationId")] Guid ReservationId);
+
+internal sealed record InventoryReservationReleasedPayload(
+    [property: System.Text.Json.Serialization.JsonPropertyName("orderId")] Guid OrderId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("reservationId")] Guid ReservationId);
+
+internal sealed record InventoryReservationFailedPayload(
+    [property: System.Text.Json.Serialization.JsonPropertyName("orderId")] Guid OrderId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("reason")] string Reason);
