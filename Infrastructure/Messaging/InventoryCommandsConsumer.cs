@@ -73,8 +73,12 @@ public sealed class InventoryCommandsConsumer : BackgroundService
                             {
                                 await service.CreateReservationAsync(request, idempotencyKey, stoppingToken);
                             }
-                            catch (InvalidOperationException ex)
+                            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
                             {
+                                // Both business-rule rejections (insufficient stock) and malformed
+                                // commands (e.g. missing fulfillmentCenterId) mean this reservation
+                                // can never succeed; treat them the same so a bad message doesn't
+                                // permanently block this consumer's offset from advancing.
                                 using var failScope = _scopeFactory.CreateScope();
                                 var publisher = failScope.ServiceProvider.GetRequiredService<IEventPublisher>();
                                 var dbCtx = failScope.ServiceProvider.GetRequiredService<InventoryDbContext>();
